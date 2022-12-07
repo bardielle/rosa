@@ -127,18 +127,24 @@ func run(cmd *cobra.Command, _ []string) {
 		r.Reporter.Errorf("The 'mode' option is only supported for STS clusters")
 		os.Exit(1)
 	}
-
-	scheduledUpgrade, upgradeState, err := r.OCMClient.GetScheduledUpgrade(cluster.ID())
-	if err != nil {
-		r.Reporter.Errorf("Failed to get scheduled upgrades for cluster '%s': %v", clusterKey, err)
-		os.Exit(1)
+	if isSTS && mode == "" {
+		mode, err = interactive.GetOption(interactive.Input{
+			Question: "IAM Roles/Policies upgrade mode",
+			Help:     cmd.Flags().Lookup("mode").Usage,
+			Default:  aws.ModeAuto,
+			Options:  aws.Modes,
+			Required: true,
+		})
+		if err != nil {
+			r.Reporter.Errorf("Expected a valid role upgrade mode: %s", err)
+			os.Exit(1)
+		}
+		aws.SetModeKey(mode)
 	}
-	if scheduledUpgrade != nil {
-		r.Reporter.Warnf("There is already a %s upgrade to version %s on %s",
-			upgradeState.Value(),
-			scheduledUpgrade.Version(),
-			scheduledUpgrade.NextRun().Format("2006-01-02 15:04 MST"),
-		)
+
+	canScheduleNewUpgrade, err := r.OCMClient.CanScheduleNewUpgrade(cluster.ID())
+	if err != nil || !canScheduleNewUpgrade {
+		r.Reporter.Errorf("Failed to  schedule a new upgrade for cluster '%s': %v", clusterKey, err)
 		os.Exit(0)
 	}
 
@@ -180,21 +186,6 @@ func run(cmd *cobra.Command, _ []string) {
 
 	if scheduleDate == "" || scheduleTime == "" {
 		interactive.Enable()
-	}
-
-	if isSTS && mode == "" {
-		mode, err = interactive.GetOption(interactive.Input{
-			Question: "IAM Roles/Policies upgrade mode",
-			Help:     cmd.Flags().Lookup("mode").Usage,
-			Default:  aws.ModeAuto,
-			Options:  aws.Modes,
-			Required: true,
-		})
-		if err != nil {
-			r.Reporter.Errorf("Expected a valid role upgrade mode: %s", err)
-			os.Exit(1)
-		}
-		aws.SetModeKey(mode)
 	}
 
 	// if cluster is sts validate roles are compatible with upgrade version

@@ -18,6 +18,7 @@ package ocm
 
 import (
 	"encoding/json"
+	"fmt"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
@@ -43,6 +44,22 @@ func (c *Client) GetUpgradePolicies(clusterID string) (upgradePolicies []*cmv1.U
 		page++
 	}
 	return
+}
+
+func (c *Client) CanScheduleNewUpgrade(clusterID string) (bool, error) {
+	scheduledUpgrade, upgradeState, err := c.GetScheduledUpgrade(clusterID)
+	if err != nil {
+		return false, fmt.Errorf("Failed to get scheduled upgrades for cluster '%s': %v", clusterKey, err)
+	}
+	if scheduledUpgrade != nil {
+		return false, fmt.Errorf("There is already a %s upgrade to version %s on %s",
+			upgradeState.Value(),
+			scheduledUpgrade.Version(),
+			scheduledUpgrade.NextRun().Format("2006-01-02 15:04 MST"),
+		)
+	}
+
+	return true, nil
 }
 
 func (c *Client) GetScheduledUpgrade(clusterID string) (*cmv1.UpgradePolicy, *cmv1.UpgradePolicyState, error) {
