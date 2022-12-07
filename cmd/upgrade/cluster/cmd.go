@@ -104,6 +104,15 @@ func init() {
 	confirm.AddFlag(flags)
 }
 
+func GetVersionInteractive(helpString string, availableUpgrades []string) (string, error) {
+	return interactive.GetOption(interactive.Input{
+		Question: "Version",
+		Help:     helpString,
+		Options:  availableUpgrades,
+		Default:  availableUpgrades[0],
+		Required: true})
+}
+
 func run(cmd *cobra.Command, _ []string) {
 	r := rosa.NewRuntime().WithAWS().WithOCM()
 	defer r.Cleanup()
@@ -143,47 +152,29 @@ func run(cmd *cobra.Command, _ []string) {
 	}
 
 	canScheduleNewUpgrade, err := r.OCMClient.CanScheduleNewUpgrade(cluster.ID())
-	if err != nil || !canScheduleNewUpgrade {
-		r.Reporter.Errorf("Failed to  schedule a new upgrade for cluster '%s': %v", clusterKey, err)
+	if err != nil {
+		r.Reporter.Errorf("Can't schedule a new upgrade for cluster '%s': %v", clusterKey, err)
+		os.Exit(0)
+	}
+	if !canScheduleNewUpgrade {
+		r.Reporter.Errorf("Can't schedule a new upgrade for cluster '%s'", clusterKey)
 		os.Exit(0)
 	}
 
 	version := args.version
-	scheduleDate := args.scheduleDate
-	scheduleTime := args.scheduleTime
-
-	availableUpgrades, err := r.OCMClient.GetAvailableUpgrades(ocm.GetVersionID(cluster))
+	getVersionInteractiveFunc := GetVersionInteractive
+	isValid, availableUpgrades, err := r.OCMClient.ValidateVersion(version, cmd.Flags().Lookup("version").Usage, interactive.Enabled(), cluster, &getVersionInteractiveFunc)
 	if err != nil {
-		r.Reporter.Errorf("Failed to find available upgrades: %v", err)
-		os.Exit(1)
-	}
-	if len(availableUpgrades) == 0 {
-		r.Reporter.Warnf("There are no available upgrades")
+		r.Reporter.Errorf("Invalid version %v", err)
 		os.Exit(0)
 	}
-	if version == "" || interactive.Enabled() {
-		if version == "" {
-			version = availableUpgrades[0]
-		}
-		version, err = interactive.GetOption(interactive.Input{
-			Question: "Version",
-			Help:     cmd.Flags().Lookup("version").Usage,
-			Options:  availableUpgrades,
-			Default:  version,
-			Required: true,
-		})
-		if err != nil {
-			r.Reporter.Errorf("Expected a valid version to upgrade to: %s", err)
-			os.Exit(1)
-		}
+	if !isValid {
+		r.Reporter.Errorf("Invalid version")
+		os.Exit(0)
 	}
 
-	err = r.OCMClient.CheckUpgradeClusterVersion(availableUpgrades, version, cluster)
-	if err != nil {
-		r.Reporter.Errorf("%v", err)
-		os.Exit(1)
-	}
-
+	scheduleDate := args.scheduleDate
+	scheduleTime := args.scheduleTime
 	if scheduleDate == "" || scheduleTime == "" {
 		interactive.Enable()
 	}

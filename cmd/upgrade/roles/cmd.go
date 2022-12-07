@@ -228,27 +228,26 @@ func run(cmd *cobra.Command, argv []string) error {
 
 		switch mode {
 		case aws.ModeAuto:
-			if isUpgradeNeedForAccountRolePolicies {
-				reporter.Infof("Starting to upgrade the policies")
-				err = upgradeAccountRolePoliciesFromCluster(
-					mode,
-					reporter,
-					awsClient,
-					cluster,
-					creator.AccountID,
-					accountRolePolicies,
-					policyVersion,
-					isPolicyVersionChosen,
-				)
-				if err != nil {
-					LogError(roles.RosaUpgradeAccRolesModeAuto, ocmClient, policyVersion, err, reporter)
-					if args.isInvokedFromClusterUpgrade {
-						return err
-					}
-					reporter.Errorf("Error upgrading the role polices: %s", err)
-					os.Exit(1)
+			reporter.Infof("Starting to upgrade the policies")
+			err = upgradeAccountRolePoliciesFromCluster(
+				mode,
+				reporter,
+				awsClient,
+				cluster,
+				creator.AccountID,
+				accountRolePolicies,
+				policyVersion,
+				isPolicyVersionChosen,
+			)
+			if err != nil {
+				LogError(roles.RosaUpgradeAccRolesModeAuto, ocmClient, policyVersion, err, reporter)
+				if args.isInvokedFromClusterUpgrade {
+					return err
 				}
+				reporter.Errorf("Error upgrading the role polices: %s", err)
+				os.Exit(1)
 			}
+
 		case aws.ModeManual:
 			err = aws.GeneratePolicyFiles(reporter, env, isUpgradeNeedForAccountRolePolicies,
 				false, accountRolePolicies, nil)

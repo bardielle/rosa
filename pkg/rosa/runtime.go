@@ -73,7 +73,7 @@ func (r *Runtime) GetClusterKey() string {
 func (r *Runtime) FetchCluster() *cmv1.Cluster {
 	if r.Cluster != nil {
 		return r.Cluster
-	}
+	}``
 
 	// We don't want to lazy init the OCM client since it requires cleanup
 	if r.OCMClient == nil {

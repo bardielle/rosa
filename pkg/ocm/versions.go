@@ -122,6 +122,34 @@ func GetVersionID(cluster *cmv1.Cluster) string {
 	return cluster.Version().ID()
 }
 
+func (c *Client) ValidateVersion(version, helpString string, isInteractive bool, cluster *cmv1.Cluster, getVersionInteractive *func(helpString string, availableUpgrades []string) (string, error)) (bool, []string, error) {
+	availableUpgrades, err := c.GetAvailableUpgrades(GetVersionID(cluster))
+	if err != nil {
+		return false, nil, fmt.Errorf("Failed to find available upgrades: %v", err)
+	}
+	if len(availableUpgrades) == 0 {
+		return false, nil, fmt.Errorf("There are no available upgrades")
+	}
+
+	if version == "" || isInteractive {
+		if version == "" {
+			version = availableUpgrades[0]
+		}
+		if getVersionInteractive != nil {
+			version, err = (*getVersionInteractive)(helpString, availableUpgrades)
+			if err != nil {
+				return false, nil, fmt.Errorf("Expected a valid version to upgrade to: %s", err)
+			}
+		}
+	}
+
+	err = c.CheckUpgradeClusterVersion(availableUpgrades, version, cluster)
+	if err != nil {
+		return false, nil, err
+	}
+
+	return true, availableUpgrades, nil
+}
 func (c *Client) GetAvailableUpgrades(versionID string) ([]string, error) {
 	response, err := c.ocm.ClustersMgmt().V1().
 		Versions().
