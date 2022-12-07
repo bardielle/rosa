@@ -48,6 +48,10 @@ func NewClient() *ClientBuilder {
 	return &ClientBuilder{}
 }
 
+func CreateNewClientUsingExistingConnection(ocm *sdk.Connection) *Client {
+	return &Client{ocm: ocm}
+}
+
 func CreateNewClientOrExit(logger *logrus.Logger, reporter *reporter.Object) *Client {
 	client, err := NewClient().
 		Logger(logger).
