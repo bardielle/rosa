@@ -1,4 +1,4 @@
-package oidc_config
+package oidcconfig
 
 import (
 	"crypto"

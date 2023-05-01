@@ -35,7 +35,7 @@ import (
 	awscb "github.com/openshift/rosa/pkg/aws/commandbuilder"
 	"github.com/openshift/rosa/pkg/aws/tags"
 	"github.com/openshift/rosa/pkg/helper"
-	"github.com/openshift/rosa/pkg/helper/oidc_config"
+	"github.com/openshift/rosa/pkg/helper/oidcconfig"
 	"github.com/openshift/rosa/pkg/interactive"
 	"github.com/openshift/rosa/pkg/interactive/confirm"
 	"github.com/openshift/rosa/pkg/output"
@@ -253,9 +253,9 @@ func run(cmd *cobra.Command, argv []string) {
 		}
 	}
 
-	oidcConfigInput := oidc_config.OidcConfigInput{}
+	oidcConfigInput := oidcconfig.OidcConfigInput{}
 	if !args.managed {
-		oidcConfigInput, err = oidc_config.BuildOidcConfigInput(args.userPrefix, args.region)
+		oidcConfigInput, err = oidcconfig.BuildOidcConfigInput(args.userPrefix, args.region)
 		if err != nil {
 			r.Reporter.Errorf("%s", err)
 			os.Exit(1)
@@ -278,7 +278,7 @@ type CreateOidcConfigStrategy interface {
 }
 
 type CreateUnmanagedOidcConfigRawStrategy struct {
-	oidcConfig *oidc_config.OidcConfigInput
+	oidcConfig *oidcconfig.OidcConfigInput
 }
 
 func (s *CreateUnmanagedOidcConfigRawStrategy) execute(r *rosa.Runtime) {
@@ -310,7 +310,7 @@ func (s *CreateUnmanagedOidcConfigRawStrategy) execute(r *rosa.Runtime) {
 }
 
 type CreateUnmanagedOidcConfigAutoStrategy struct {
-	oidcConfig *oidc_config.OidcConfigInput
+	oidcConfig *oidcconfig.OidcConfigInput
 }
 
 const (
@@ -397,7 +397,7 @@ func (s *CreateUnmanagedOidcConfigAutoStrategy) execute(r *rosa.Runtime) {
 }
 
 type CreateUnmanagedOidcConfigManualStrategy struct {
-	oidcConfig *oidc_config.OidcConfigInput
+	oidcConfig *oidcconfig.OidcConfigInput
 }
 
 func (s *CreateUnmanagedOidcConfigManualStrategy) execute(r *rosa.Runtime) {
@@ -505,7 +505,7 @@ func (s *CreateUnmanagedOidcConfigManualStrategy) execute(r *rosa.Runtime) {
 }
 
 type CreateManagedOidcConfigAutoStrategy struct {
-	oidcConfigInput *oidc_config.OidcConfigInput
+	oidcConfigInput *oidcconfig.OidcConfigInput
 }
 
 func (s *CreateManagedOidcConfigAutoStrategy) execute(r *rosa.Runtime) {
@@ -549,7 +549,7 @@ func (s *CreateManagedOidcConfigAutoStrategy) execute(r *rosa.Runtime) {
 	}
 }
 
-func getOidcConfigStrategy(mode string, input *oidc_config.OidcConfigInput) (CreateOidcConfigStrategy, error) {
+func getOidcConfigStrategy(mode string, input *oidcconfig.OidcConfigInput) (CreateOidcConfigStrategy, error) {
 	if args.rawFiles {
 		return &CreateUnmanagedOidcConfigRawStrategy{oidcConfig: input}, nil
 	}
